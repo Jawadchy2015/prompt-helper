@@ -14,6 +14,58 @@
   ghostEl.innerHTML = `<div id="ph-ghost-text"></div><div class="ph-hint">Tab: accept • Esc: dismiss</div>`;
   document.documentElement.appendChild(ghostEl);
 
+  function normalizeSuggestion(s) {
+  if (!s) return "";
+  let out = s.trim();
+
+  // Remove common prefixes if they slip through
+  out = out.replace(/^(add|suggestion|append)\s*[:\-]?\s*/i, "");
+
+  // If it still starts with "Add " (no colon), remove that too
+  out = out.replace(/^add\s+/i, "");
+
+  return out;
+}
+
+  function needsSpaceBeforeAppend(existing, append) {
+    if (!existing) return false;
+    if (!append) return false;
+
+    const last = existing.slice(-1);
+    const first = append[0];
+
+    // If existing already ends with whitespace, no need
+    if (/\s/.test(last)) return false;
+
+    // If append starts with punctuation, no need
+    if (/[.,!?;:)\]]/.test(first)) return false;
+
+    // If existing ends with opening punctuation, no need
+    if (/[\(\[]/.test(last)) return false;
+
+    return true;
+  }
+
+  function setCaretToEnd(inputEl) {
+    // textarea / input
+    if (inputEl && typeof inputEl.selectionStart === "number") {
+      const len = inputEl.value.length;
+      inputEl.selectionStart = inputEl.selectionEnd = len;
+      return;
+    }
+
+    // contenteditable
+    if (inputEl && inputEl.isContentEditable) {
+      const range = document.createRange();
+      range.selectNodeContents(inputEl);
+      range.collapse(false); // collapse to end
+
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
   function setGhost(text) {
     currentGhost = text || "";
     const textEl = ghostEl.querySelector("#ph-ghost-text");
@@ -208,30 +260,53 @@
 
   // Tab accept + Esc dismiss
   document.addEventListener("keydown", (e) => {
-    if (!activeInput) return;
-    const focused = document.activeElement === activeInput;
-    if (!focused) return;
-
     if (e.key === "Escape") {
       clearGhost();
       return;
     }
 
-    if (e.key === "Tab") {
-      if (!currentGhost.trim()) return;
+    if (e.key === "Tab" && currentGhost) {
+      // Only accept if we're focused in the target input
+      if (!activeInput || document.activeElement !== activeInput) return;
+
       e.preventDefault();
 
-      const base = getText(activeInput).trimEnd();
-      const next = base + currentGhost;
+      let ghost = normalizeSuggestion(currentGhost);
+      if (!ghost) {
+        clearGhost();
+        return;
+      }
 
-      setText(activeInput, next);
+      if (activeInput.tagName === "TEXTAREA" || activeInput.tagName === "INPUT") {
+        const existing = activeInput.value;
+        const spacer = needsSpaceBeforeAppend(existing, ghost) ? " " : "";
+        activeInput.value = existing + spacer + ghost;
+
+        // fire input so ChatGPT reacts
+        activeInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+        // keep caret at end
+        activeInput.focus();
+        setCaretToEnd(activeInput);
+      } else if (activeInput.isContentEditable) {
+        const existing = activeInput.textContent || "";
+        const spacer = needsSpaceBeforeAppend(existing, ghost) ? " " : "";
+
+        // Insert as plain text at the end
+        activeInput.focus();
+        document.execCommand("insertText", false, spacer + ghost);
+
+        // Some editors still need an input event
+        activeInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+        // Force caret to end (important!)
+        setCaretToEnd(activeInput);
+      }
+
       clearGhost();
-
-      // Keep focus
-      activeInput.focus();
     }
-  }, true);
-
+  });
+  
   // Observe DOM changes because ChatGPT often re-renders
   function startObserver() {
     if (observer) observer.disconnect();
