@@ -1,0 +1,32 @@
+/* Ghost suggestion overlay */
+#ph-ghost {
+  position: fixed;
+  z-index: 999999;
+  max-width: 720px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(89, 183, 179, 0.06);
+  backdrop-filter: blur(6px);
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgb(255, 255, 255);
+  pointer-events: none; /* don't block typing */
+  white-space: pre-wrap;
+  display: none;
+}
+
+#ph-ghost .ph-hint {
+  font-size: 11px;
+  margin-top: 6px;
+  color: rgb(255, 255, 255);
+}
+
+@media (prefers-color-scheme: dark) {
+  #ph-ghost {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.65);
+  }
+  #ph-ghost .ph-hint {
+    color: rgba(255,255,255,0.45);
+  }
+}
