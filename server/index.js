@@ -62,6 +62,51 @@ app.post("/suggest", async (req, res) => {
   }
 });
 
+app.post("/suggestFinal", async (req, res) => {
+  try {
+    const text = (req.body?.text || "").trim();
+    if (!text) return res.json({ rewritten: "" });
+
+    // Optional: limit to prevent huge prompts
+    if (text.length > 6000) return res.json({ rewritten: "" });
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      max_tokens: 500,
+      messages: [
+        {
+          role: "system",
+          content: `
+You are a prompt editor. Your job is to improve the user's prompt for clarity, grammar, and specificity WITHOUT changing intent.
+
+Return ONLY the rewritten prompt (plain text) or return an empty string if no changes are needed.
+
+Rules:
+- Preserve meaning and user intent.
+- Fix grammar, spelling, punctuation, and structure.
+- If the prompt is vague, you may add light clarification scaffolding (e.g., "Provide steps", "Include code") ONLY if strongly implied by the user's wording.
+- Do NOT add new requirements that the user did not imply.
+- Do NOT include prefixes like "Rewritten:" or quotes or markdown.
+- If the original is already good, return empty string.
+`.trim()
+        },
+        { role: "user", content: text }
+      ]
+    });
+
+    const rewritten = (completion.choices?.[0]?.message?.content || "").trim();
+
+    // Safety cleanup: if model returns the same thing, treat as "no rewrite"
+    if (!rewritten || rewritten === text) return res.json({ rewritten: "" });
+
+    return res.json({ rewritten });
+  } catch (err) {
+    console.error("suggestFinal error:", err);
+    return res.json({ rewritten: "" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 LLM Suggestion server running at http://localhost:${PORT}`);
 });

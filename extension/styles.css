@@ -30,3 +30,38 @@
     color: rgba(255,255,255,0.45);
   }
 }
+
+#ph-final {
+  position: fixed;
+  left: 50%;
+  bottom: 110px;
+  transform: translateX(-50%);
+  width: min(900px, calc(100vw - 48px));
+  background: rgba(20, 20, 20, 0.92);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+  z-index: 999999;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+#ph-final .ph-title {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+#ph-final .ph-body {
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#ph-final .ph-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.8;
+}
